@@ -1,0 +1,10 @@
+{
+  "name": "lettersAndNumbers-Editor",
+  "references": [
+    "lettersAndNumbers"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": []
+}
