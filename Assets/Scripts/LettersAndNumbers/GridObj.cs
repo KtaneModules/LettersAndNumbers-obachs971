@@ -17,6 +17,14 @@ namespace Grid
 			}
 			spaces.Shuffle();
 		}
+		public GridObj(GridObj grid, List<int> movableSpaces, int[] combo)
+		{
+			spaces = new List<string>();
+			for (int i = 0; i < 16; i++)
+				spaces.Add(grid.getSpace("ABCD"[i % 4] + "" + "1234"[i / 4]));
+			for (int i = 0; i < combo.Length; i++)
+				spaces[movableSpaces[i]] = grid.getSpace("ABCD"[movableSpaces[combo[i]] % 4] + "" + "1234"[movableSpaces[combo[i]] / 4]);
+		}
 		public GridObj(TextMesh[] gridText)
 		{
 			spaces = new List<string>();

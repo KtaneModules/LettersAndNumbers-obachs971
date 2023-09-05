@@ -16,8 +16,8 @@ public class ConditionGenerator
 	private string EQUAL = "EL";
 	private string LESS = "LS";
 	private string GREATER = "GR";
-	private string SAME = "SE";
-	private string DIFFERENT = "DT";
+	private string ORDER = "OR";
+	private string CONDITIONAL = "CL";
 	public List<ConditionObj> generateAllConditions(GridObj grid)
 	{
 		List<ConditionObj> conditions = new List<ConditionObj>();
@@ -33,10 +33,10 @@ public class ConditionGenerator
 			new LocationObj(grid.getSpaces(new string[] { "C1", "C2", "C3", "C4" }), "Column C", "CC"),
 			new LocationObj(grid.getSpaces(new string[] { "D1", "D2", "D3", "D4" }), "Column D", "CD"),
 
-			new LocationObj(grid.getSpaces(new string[] { "A1", "A2", "B1", "B2" }), "The 1st Quadrant", "1Q"),
-			new LocationObj(grid.getSpaces(new string[] { "C1", "C2", "D1", "D2" }), "The 2nd Quadrant", "2Q"),
-			new LocationObj(grid.getSpaces(new string[] { "A3", "A4", "B3", "B4" }), "The 3rd Quadrant", "3Q"),
-			new LocationObj(grid.getSpaces(new string[] { "C3", "C4", "D3", "D4" }), "The 4th Quadrant", "4Q"),
+			new LocationObj(grid.getSpaces(new string[] { "A1", "B1", "A2", "B2" }), "The 1st Quadrant", "1Q"),
+			new LocationObj(grid.getSpaces(new string[] { "C1", "D1", "C2", "D2" }), "The 2nd Quadrant", "2Q"),
+			new LocationObj(grid.getSpaces(new string[] { "A3", "B3", "A4", "B4" }), "The 3rd Quadrant", "3Q"),
+			new LocationObj(grid.getSpaces(new string[] { "C3", "D3", "C4", "D4" }), "The 4th Quadrant", "4Q"),
 
 			new LocationObj(grid.getSpaces(new string[] { "A1", "A2", "B1", "B2", "C1", "C2", "D1", "D2" }), "The Top Half", "TH"),
 			new LocationObj(grid.getSpaces(new string[] { "A3", "A4", "B3", "B4", "C3", "C4", "D3", "D4" }), "The Bottom Half", "BH"),
@@ -45,62 +45,63 @@ public class ConditionGenerator
 		};
 		int[] starts = { 0, 4, 8, 12 };
 
-		List<ConditionObj> amountConditions = new List<ConditionObj>();
-		List<ConditionObj> compareAmountConditions = new List<ConditionObj>();
-		List<ConditionObj> compareValueConditions = new List<ConditionObj>();
-
-		amountConditions.AddRange(removeHalf(generateAmountConditions(grid)));
-		foreach(LocationObj location in locations)
-			amountConditions.AddRange(removeHalf(generateAmountConditions(location)));
+		List<ConditionObj> cond1 = new List<ConditionObj>();
+		List<ConditionObj> cond2 = new List<ConditionObj>();
+		List<ConditionObj> cond3 = new List<ConditionObj>();
+		List<ConditionObj> cond4 = new List<ConditionObj>();
+		List<ConditionObj> cond5 = new List<ConditionObj>();
 
 		foreach (LocationObj location in locations)
-			compareAmountConditions.AddRange(removeHalf(generateCompareAmountConditions(location)));
+			cond1.AddRange(generateAmountConditions(location));
+
+		foreach (LocationObj location in locations)
+			cond2.AddRange(generateCompareAmountConditions(location));
 		foreach(int start in starts)
 		{
 			for(int i = start; i < start + 4; i++)
 			{
 				for(int j = i + 1; j < start + 4; j++)
-					compareAmountConditions.AddRange(removeHalf(generateCompareAmountConditions(locations[i], locations[j])));
+					cond2.AddRange(generateCompareAmountConditions(locations[i], locations[j]));
 			}
 		}
-
-		compareValueConditions.AddRange(removeHalf(generateCompareValueConditions(grid)));
 		foreach (LocationObj location in locations)
-			compareValueConditions.AddRange(removeHalf(generateCompareValueConditions(location, grid)));
+			cond3.AddRange(generateCompareValueConditions(location, grid));
 
-		/*
-		compareAmountConditions.Shuffle();
-		compareValueConditions.Shuffle();
-		while (compareAmountConditions.Count > amountConditions.Count)
-			compareAmountConditions.RemoveAt(0);
-		while (compareValueConditions.Count > amountConditions.Count)
-			compareValueConditions.RemoveAt(0);
-		*/
+		cond4.AddRange(generateOrderConditions(new LocationObj[] { locations[0], locations[1], locations[2], locations[3] }, "Row", "RW"));
+		cond4.AddRange(generateOrderConditions(new LocationObj[] { locations[4], locations[5], locations[6], locations[7] }, "Column", "CM"));
+		cond4.AddRange(generateOrderConditions(new LocationObj[] { locations[8], locations[9], locations[10], locations[11] }, "Quadrant", "QT"));
 
-		conditions.AddRange(amountConditions);
-		conditions.AddRange(compareAmountConditions);
-		conditions.AddRange(compareValueConditions);
-		conditions.Shuffle();
-		return conditions;
-	}
-	private List<ConditionObj> generateAmountConditions(GridObj grid)
-	{
-		List<ConditionObj> conditions = new List<ConditionObj>();
+		cond5.AddRange(generateConditionalConditions(new LocationObj[] { locations[0], locations[1], locations[2], locations[3] }, "Row", "RW"));
+		cond5.AddRange(generateConditionalConditions(new LocationObj[] { locations[4], locations[5], locations[6], locations[7] }, "Column", "CM"));
+		cond5.AddRange(generateConditionalConditions(new LocationObj[] { locations[8], locations[9], locations[10], locations[11] }, "Quadrant", "QT"));
+
+		//Debug.LogFormat("Cond1: {0}", cond1.Count);
+		//Debug.LogFormat("Cond2: {0}", cond2.Count);
+		//Debug.LogFormat("Cond3: {0}", cond3.Count);
+		//Debug.LogFormat("Cond4: {0}", cond4.Count);
+		//Debug.LogFormat("Cond5: {0}", cond5.Count);
+
+		cond2.Shuffle();
+		cond3.Shuffle();
+		cond4.Shuffle();
+		cond5.Shuffle();
 		
-		for (int i = 0; i < 16; i++)
-		{
-			string space = "ABCD"[i % 4] + "" + ((i / 4) + 1);
-			string value = grid.getSpace(space);
-			conditions.Add(new CDExactly("The " + space + " space must contain the letter " + value[0], space, value[0] + "" + value[0], 1, EXACTLY));
-			conditions.Add(new CDExactly("The " + space + " space must contain the number " + value[1], space, value[1] + "" + value[1], 1, EXACTLY));
-			string lets = "ABCD".Replace(value[0] + "", "");
-			string nums = "1234".Replace(value[1] + "", "");
-			foreach(char let in lets)
-				conditions.Add(new CDExactly("The " + space + " space must NOT contain the letter " + let, space, let + "" + let, 0, EXACTLY));
-			foreach (char num in nums)
-				conditions.Add(new CDExactly("The " + space + " space must NOT contain the number " + num, space, num + "" + num, 0, EXACTLY));
-		}
+		while (cond2.Count > 15)
+			cond2.RemoveAt(0);
+		while (cond3.Count > 15)
+			cond3.RemoveAt(0);
+		while (cond4.Count > 10)
+			cond4.RemoveAt(0);
+		while (cond5.Count > 50)
+			cond5.RemoveAt(0);
 
+		conditions.AddRange(cond1);
+		conditions.AddRange(cond2);
+		conditions.AddRange(cond3);
+		conditions.AddRange(cond4);
+		conditions.AddRange(cond5);
+
+		conditions.Shuffle();
 		return conditions;
 	}
 	private List<ConditionObj> generateAmountConditions(LocationObj location)
@@ -247,29 +248,6 @@ public class ConditionGenerator
 		}
 		return conditions;
 	}
-	private List<ConditionObj> generateCompareValueConditions(GridObj grid)
-	{
-		List<ConditionObj> conditions = new List<ConditionObj>();
-		for(int i = 0; i < 16; i++)
-		{
-			for(int j = i + 1; j < 16; j++)
-			{
-				string s1 = "ABCD"[i % 4] + "" + ((i / 4) + 1);
-				string s2 = "ABCD"[j % 4] + "" + ((j / 4) + 1);
-				string v1 = grid.getSpace(s1);
-				string v2 = grid.getSpace(s2);
-				if (v1[0] == v2[0])
-					conditions.Add(new CDSame("The " + s1 + " space must have the same letter as the " + s2 + " space", s1, "LV", s2, SAME));
-				else
-					conditions.Add(new CDDifferent("The " + s1 + " space must NOT have the same letter as the " + s2 + " space", s1, "LV", s2, DIFFERENT));
-				if(v1[1] == v2[1])
-					conditions.Add(new CDSame("The " + s1 + " space must have the same number as the " + s2 + " space", s1, "NV", s2, SAME));
-				else
-					conditions.Add(new CDDifferent("The " + s1 + " space must NOT have the same number as the " + s2 + " space", s1, "NV", s2, DIFFERENT));
-			}
-		}
-		return conditions;
-	}
 	private List<ConditionObj> generateCompareValueConditions(LocationObj location, GridObj grid)
 	{
 		List<ConditionObj> conditions = new List<ConditionObj>();
@@ -343,12 +321,315 @@ public class ConditionGenerator
 		}
 		return conditions;
 	}
-	private List<ConditionObj> removeHalf(List<ConditionObj> conditions)
+	private List<ConditionObj> generateOrderConditions(LocationObj[] locations, string locName, string locID)
 	{
-		int length = conditions.Count / 2;
-		conditions.Shuffle();
-		while (conditions.Count > length)
-			conditions.RemoveAt(0);
+		List<ConditionObj> conditions = new List<ConditionObj>();
+		string charList = "ABCD1234";
+		foreach(char c1 in charList)
+		{
+			foreach (char c2 in charList)
+			{
+				foreach (char c3 in charList)
+				{
+					foreach (char c4 in charList)
+					{
+						string order = c1 + "" + c2 + "" + c3 + "" + c4;
+						int sum = 0;
+						foreach(LocationObj location in locations)
+						{
+							bool flag = true;
+							string[] spaces = location.getSpaces();
+							for(int i = 0; i < order.Length; i++)
+							{
+								if(!(spaces[i].Contains(order[i] + "")))
+								{
+									flag = false;
+									break;
+								}
+							}
+							if (flag)
+							{
+								sum++;
+								if (sum > 1)
+									break;
+							}
+						}
+						if(sum == 1)
+							conditions.Add(new CDOrder("One of the " + locName + "s is arranged in this order: " + order, locID, order, sum, ORDER));
+					}
+				}
+			}
+		}
 		return conditions;
+	}
+	private List<ConditionObj> generateConditionalConditions(LocationObj[] locations, string locName, string locID)
+	{
+		List<ConditionObj> conditions = new List<ConditionObj>();
+		string charList = "ABCD1234";
+		foreach (char c1 in charList)
+		{
+			foreach (char c2 in charList)
+			{
+				if(c1 != c2)
+				{
+					//Exactly Exactly
+					for(int i = 0; i <= 4; i++)
+					{
+						for (int j = 0; j <= 4; j++)
+						{
+							if(validConditional(locations, c1, i, EXACTLY, c2, j, EXACTLY))
+							{
+								string message = "Any " + locName + " that ";
+								switch(i)
+								{
+									case 0:
+										message += " does NOT contain any " + c1 + "s must also ";
+										break;
+									case 1:
+										message += " contains exactly " + i + " " + c1 + " must also ";
+										break;
+									default:
+										message += " contains exactly " + i + " " + c1 + "s must also ";
+										break;
+								}
+								switch(j)
+								{
+									case 0:
+										message += " NOT contain any " + c2 + "s";
+										break;
+									case 1:
+										message += " contain exactly " + j + " " + c2;
+										break;
+									default:
+										message += " contain exactly " + j + " " + c2 + "s";
+										break;
+								}
+								conditions.Add(new CDConditional(message, locID, c1 + "" + c1, i, EXACTLY, c2 + "" + c2, j, EXACTLY, CONDITIONAL));
+							}
+						}
+					}
+					//Exactly Least
+					for (int i = 0; i <= 4; i++)
+					{
+						for (int j = 1; j < 4; j++)
+						{
+							if (validConditional(locations, c1, i, EXACTLY, c2, j, LEAST))
+							{
+								string message = "Any " + locName + " that ";
+								switch (i)
+								{
+									case 0:
+										message += " does NOT contain any " + c1 + "s must also ";
+										break;
+									case 1:
+										message += " contains exactly " + i + " " + c1 + " must also ";
+										break;
+									default:
+										message += " contains exactly " + i + " " + c1 + "s must also ";
+										break;
+								}
+								switch (j)
+								{
+									case 1:
+										message += " contain at least " + j + " " + c2;
+										break;
+									default:
+										message += " contain at least " + j + " " + c2 + "s";
+										break;
+								}
+								conditions.Add(new CDConditional(message, locID, c1 + "" + c1, i, EXACTLY, c2 + "" + c2, j, LEAST, CONDITIONAL));
+							}
+						}
+					}
+					//Exactly Fewer
+					for (int i = 0; i <= 4; i++)
+					{
+						for (int j = 1; j < 4; j++)
+						{
+							if (validConditional(locations, c1, i, EXACTLY, c2, j, FEWER))
+							{
+								string message = "Any " + locName + " that ";
+								switch (i)
+								{
+									case 0:
+										message += " does NOT contain any " + c1 + "s must also ";
+										break;
+									case 1:
+										message += " contains exactly " + i + " " + c1 + " must also ";
+										break;
+									default:
+										message += " contains exactly " + i + " " + c1 + "s must also ";
+										break;
+								}
+								message += " contain " + j + " or fewer " + c2 + "s";
+								conditions.Add(new CDConditional(message, locID, c1 + "" + c1, i, EXACTLY, c2 + "" + c2, j, FEWER, CONDITIONAL));
+							}
+						}
+					}
+					//Least Exactly
+					for (int i = 1; i < 4; i++)
+					{
+						for (int j = 0; j <= 4; j++)
+						{
+							if (validConditional(locations, c1, i, LEAST, c2, j, EXACTLY))
+							{
+								string message = "Any " + locName + " that ";
+								switch (i)
+								{
+									case 1:
+										message += " contains at least " + i + " " + c1 + " must also ";
+										break;
+									default:
+										message += " contains at least " + i + " " + c1 + "s must also ";
+										break;
+								}
+								switch (j)
+								{
+									case 0:
+										message += " NOT contain any " + c2 + "s";
+										break;
+									case 1:
+										message += " contain exactly " + j + " " + c2;
+										break;
+									default:
+										message += " contain exactly " + j + " " + c2 + "s";
+										break;
+								}
+								conditions.Add(new CDConditional(message, locID, c1 + "" + c1, i, LEAST, c2 + "" + c2, j, EXACTLY, CONDITIONAL));
+							}
+						}
+					}
+					// Least Least
+					for (int i = 1; i < 4; i++)
+					{
+						for (int j = 1; j < 4; j++)
+						{
+							if (validConditional(locations, c1, i, LEAST, c2, j, LEAST))
+							{
+								string message = "Any " + locName + " that ";
+								switch (i)
+								{
+									case 1:
+										message += " contains at least " + i + " " + c1 + " must also ";
+										break;
+									default:
+										message += " contains at least " + i + " " + c1 + "s must also ";
+										break;
+								}
+								switch (j)
+								{
+									case 1:
+										message += " contain at least " + j + " " + c2;
+										break;
+									default:
+										message += " contain at least " + j + " " + c2 + "s";
+										break;
+								}
+								conditions.Add(new CDConditional(message, locID, c1 + "" + c1, i, LEAST, c2 + "" + c2, j, LEAST, CONDITIONAL));
+							}
+						}
+					}
+					//Least Fewer
+					for (int i = 1; i < 4; i++)
+					{
+						for (int j = 1; j < 4; j++)
+						{
+							if (validConditional(locations, c1, i, LEAST, c2, j, FEWER))
+							{
+								string message = "Any " + locName + " that ";
+								switch (i)
+								{
+									case 1:
+										message += " contains at least " + i + " " + c1 + " must also ";
+										break;
+									default:
+										message += " contains at least " + i + " " + c1 + "s must also ";
+										break;
+								}
+								message += " contain " + j + " or fewer " + c2 + "s";
+								conditions.Add(new CDConditional(message, locID, c1 + "" + c1, i, LEAST, c2 + "" + c2, j, FEWER, CONDITIONAL));
+							}
+						}
+					}
+					//Fewer Exactly
+					for (int i = 1; i < 4; i++)
+					{
+						for (int j = 0; j <= 4; j++)
+						{
+							if (validConditional(locations, c1, i, FEWER, c2, j, EXACTLY))
+							{
+								string message = "Any " + locName + " that contains " + i + " or fewer " + c1 + "s must also ";
+								switch (j)
+								{
+									case 0:
+										message += " NOT contain any " + c2 + "s";
+										break;
+									case 1:
+										message += " contain exactly " + j + " " + c2;
+										break;
+									default:
+										message += " contain exactly " + j + " " + c2 + "s";
+										break;
+								}
+								conditions.Add(new CDConditional(message, locID, c1 + "" + c1, i, FEWER, c2 + "" + c2, j, EXACTLY, CONDITIONAL));
+							}
+						}
+					}
+					//Fewer Least
+					for (int i = 1; i < 4; i++)
+					{
+						for (int j = 1; j < 4; j++)
+						{
+							if (validConditional(locations, c1, i, FEWER, c2, j, LEAST))
+							{
+								string message = "Any " + locName + " that contains " + i + " or fewer " + c1 + "s must also ";
+								switch (j)
+								{
+									case 1:
+										message += " contain at least " + j + " " + c2;
+										break;
+									default:
+										message += " contain at least " + j + " " + c2 + "s";
+										break;
+								}
+								conditions.Add(new CDConditional(message, locID, c1 + "" + c1, i, FEWER, c2 + "" + c2, j, LEAST, CONDITIONAL));
+							}
+						}
+					}
+					//Fewer Fewer
+					for (int i = 1; i < 4; i++)
+					{
+						for (int j = 1; j < 4; j++)
+						{
+							if (validConditional(locations, c1, i, FEWER, c2, j, FEWER))
+							{
+								string message = "Any " + locName + " that contains " + i + " or fewer " + c1 + "s must also contain " + j + " or fewer + " + c2 + "s";
+								conditions.Add(new CDConditional(message, locID, c1 + "" + c1, i, FEWER, c2 + "" + c2, j, FEWER, CONDITIONAL));
+							}
+						}
+					}
+				} // End of if where 2 characters don't match
+			}
+		}
+		return conditions;
+	}
+	private bool validConditional(LocationObj[] locations, char c1, int s1, string condID1, char c2, int s2, string condID2)
+	{
+		foreach(LocationObj location in locations)
+		{
+			if (testCondition(location, c1, s1, condID1) && !testCondition(location, c2, s2, condID2))
+				return false;
+		}
+		return true;
+	}
+	private bool testCondition(LocationObj location, char c, int sum, string condID)
+	{
+		int total = location.getSum(c + "");
+		switch(condID)
+		{
+			case "EX": return (total == sum);
+			case "LT": return (total >= sum);
+			default: return (total <= sum);
+		}
 	}
 }

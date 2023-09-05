@@ -16,7 +16,7 @@ MonoBehaviour:
   author: Sean Obach
   description: "Rearrange this 4 by 4 grid until all of the conditions present has
     been satisfied\n\r\nThis module is an entry to Modding Jam #5: 3 sentence manual.\r\n\r\nTP
-    Support: Soon\n\r\nModule created by Sean Obach"
+    Support: Supported\n\r\nModule created by Sean Obach"
   version: 1.0
   outputFolder: build
   previewImage: {fileID: 2800000, guid: 21520d8986f4b644ca6e0b2dc02713b3, type: 3}

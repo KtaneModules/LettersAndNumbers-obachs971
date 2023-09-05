@@ -73,6 +73,10 @@ namespace Location
             }
             return false;
         }
+        public string[] getSpaces()
+        {
+            return spaces;
+        }
     }
 }
 

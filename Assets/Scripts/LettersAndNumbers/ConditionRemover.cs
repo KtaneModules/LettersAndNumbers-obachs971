@@ -7,139 +7,60 @@ using System;
 
 public class ConditionRemover {
 
-	public void testConditions(List<ConditionObj> conditions, GridObj grid)
+	public List<ConditionObj> testConditions(List<ConditionObj> conditions, GridObj grid, int moduleId)
 	{
-		foreach(ConditionObj condition in conditions)
+		List<ConditionObj> validConditions = new List<ConditionObj>();
+		foreach (ConditionObj condition in conditions)
 		{
 			bool flag = testCondition(condition, grid);
 			if (!(flag))
-				Debug.LogFormat("Condition returned false: {0}", condition.toString());
+				Debug.Log($"[Letters and Numbers #{moduleId}]: Condition returned false: {condition.toString()}");
+			else
+				validConditions.Add(condition);
 		}
+		return validConditions;
 	}
-	public List<ConditionObj> removeConditions(List<ConditionObj> conditions)
+	public List<ConditionObj> removeConditions(GridObj solution, List<ConditionObj> conditions, List<int[]> combos, List<int> movableSpaces)
 	{
-		List<GridObj> invalidGrids = getInvalidGrids(conditions);
-		List<string> validIDs = getValidIDs(conditions, invalidGrids);
-		return getFinalConditions(conditions, validIDs);
+		List<GridObj> invalidGrids = getInvalidGrids(solution, combos, movableSpaces);
+		if (hasMultipleSolutions(conditions, invalidGrids))
+			return null;
+		removeRedundantConditions(conditions, invalidGrids);
+		return getFinalConditions(conditions, invalidGrids);
 	}
-	public GridObj getWorstGrid(List<ConditionObj> conditions)
-	{
-		GridObj worstGrid = new GridObj();
-		int score = getGridScore(conditions, worstGrid);
-		int counter = 1000;
-		while(score > 0 && counter > 0)
-		{
-			GridObj grid = new GridObj();
-			int newScore = getGridScore(conditions, grid);
-			if(newScore < score)
-			{
-				worstGrid = grid;
-				score = newScore;
-			}
-			counter--;
-		}
-		return worstGrid;
-	}
-	private int getGridScore(List<ConditionObj> conditions, GridObj grid)
-	{
-		int sum = 0;
-		foreach (ConditionObj condition in conditions)
-		{
-			if (testCondition(condition, grid))
-				sum++;
-		}
-		return sum;
-	}
-	private List<GridObj> getInvalidGrids(List<ConditionObj> conditions)
+	private List<GridObj> getInvalidGrids(GridObj solution, List<int[]> combos, List<int> movableSpaces)
 	{
 		List<GridObj> invalidGrids = new List<GridObj>();
-		List<bool> bools = new List<bool>();
-		foreach (ConditionObj condition in conditions)
-			bools.Add(true);
-		for (int i = 0; i < conditions.Count; i++)
-		{
-			if (bools[i])
-			{
-				GridObj invalidGrid = getInvalidGrid(conditions[i]);
-				if (invalidGrid == null)
-				{
-					conditions.RemoveAt(i);
-					bools.RemoveAt(i);
-					i--;
-				}
-				else
-				{
-					bools = getNewBools(conditions, invalidGrid);
-					invalidGrids.Add(invalidGrid);
-				}
-			}
-		}
+		
+		foreach(int[] combo in combos)
+			invalidGrids.Add(new GridObj(solution, movableSpaces, combo));
+		
 		return invalidGrids;
 	}
-	private List<string> getValidIDs(List<ConditionObj> conditions, List<GridObj> invalidGrids)
+	private void removeRedundantConditions(List<ConditionObj> conditions, List<GridObj> invalidGrids)
 	{
 		List<string> validIDs = new List<string>();
 		for(int i = 0; i < conditions.Count; i++)
 		{
 			string validID = getValidID(conditions[i], invalidGrids);
-			if (validIDs.Contains(validID))
+			if (validID.IndexOf('0') < 0 || validIDs.Contains(validID))
 				conditions.RemoveAt(i--);
 			else
 				validIDs.Add(validID + "");
 		}
-		return validIDs;
 	}
-	private List<ConditionObj> getFinalConditions(List<ConditionObj> conditions, List<string> validIDs)
+	private List<ConditionObj> getFinalConditions(List<ConditionObj> conditions, List<GridObj> invalidGrids)
 	{
-		List<ConditionObj> finalConditions = new List<ConditionObj>();
-		while(conditions.Count > 0)
+		for(int i = 0; i < conditions.Count; i++)
 		{
-			string validID = validIDs[0];
-			finalConditions.Add(conditions[0]);
-			validIDs.RemoveAt(0);
-			conditions.RemoveAt(0);
-			for (int i = 0; i < conditions.Count; i++)
-			{
-				if (isSame(validIDs[i], validID))
-				{
-					finalConditions.RemoveAt(finalConditions.Count - 1);
-					validID = "";
-					break;
-				}
-			}
-			if (validID.Length > 0)
-			{
-				for (int i = 0; i < conditions.Count; i++)
-				{
-					if (isSame(validID, validIDs[i]))
-					{
-						validIDs.RemoveAt(i);
-						conditions.RemoveAt(i);
-						i--;
-					}
-				}
-			}
+			ConditionObj condition = conditions[i];
+			conditions.RemoveAt(i);
+			if (hasMultipleSolutions(conditions, invalidGrids))
+				conditions.Insert(i, condition);
+			else
+				i--;
 		}
-		return finalConditions;
-	}
-	private GridObj getInvalidGrid(ConditionObj condition)
-	{
-		for(int i = 0; i < 1000; i++)
-		{
-			GridObj grid = new GridObj();
-			if (!(testCondition(condition, grid)))
-				return grid;
-		}
-		return null;
-	}
-	private List<bool>  getNewBools(List<ConditionObj> conditions, GridObj invalidGrid)
-	{
-		List<bool> newBools = new List<bool>();
-
-		foreach (ConditionObj condition in conditions)
-			newBools.Add(testCondition(condition, invalidGrid));
-
-		return newBools;
+		return conditions;
 	}
 	private string getValidID(ConditionObj condition, List<GridObj> invalidGrids)
 	{
@@ -148,11 +69,20 @@ public class ConditionRemover {
 			validID += testCondition(condition, grid) ? "1" : "0";
 		return validID;
 	}
-	private bool isSame(string v1, string v2)
+	private bool hasMultipleSolutions(List<ConditionObj> conditions, List<GridObj> invalidGrids)
 	{
-		for (int i = 0; i < v1.Length; i++)
+		foreach(GridObj grid in invalidGrids)
 		{
-			if (v1[i] == '1' && v2[i] == '0')
+			if (isValidGrid(conditions, grid))
+				return true;
+		}
+		return false;
+	}
+	private bool isValidGrid(List<ConditionObj> conditions, GridObj grid)
+	{
+		foreach(ConditionObj condition in conditions)
+		{
+			if (!testCondition(condition, grid))
 				return false;
 		}
 		return true;
@@ -219,6 +149,20 @@ public class ConditionRemover {
 				string dtAttrID = code.Substring(2, 2);
 				string dtSpace2 = grid.getSpace(code.Substring(4, 2));
 				return codeToValue(dtSpace1, dtAttrID) != codeToValue(dtSpace2, dtAttrID);
+			case "OR":
+				string[][] orLocations = getLocations(code.Substring(0, 2), grid);
+				string orderID = code.Substring(2, 4);
+				int orSum = Int16.Parse(code.Substring(6, 1));
+				return (getOrderSum(orLocations, orderID) == orSum);
+			case "CL":
+				string[][] clLocations = getLocations(code.Substring(0, 2), grid);
+				string clAttrID1 = code.Substring(2, 2);
+				int clSum1 = Int16.Parse(code.Substring(4, 1));
+				string clCondID1 = code.Substring(5, 2);
+				string clAttrID2 = code.Substring(7, 2);
+				int clSum2 = Int16.Parse(code.Substring(9, 1));
+				string clCondID2 = code.Substring(10, 2);
+				return checkConditional(clLocations, clAttrID1[0], clSum1, clCondID1, clAttrID2[0], clSum2, clCondID2);
 		}
 		return false;
 	}
@@ -253,15 +197,25 @@ public class ConditionRemover {
 			case "CB": return grid.getSpaces(new string[] { "B1", "B2", "B3", "B4" });
 			case "CC": return grid.getSpaces(new string[] { "C1", "C2", "C3", "C4" });
 			case "CD": return grid.getSpaces(new string[] { "D1", "D2", "D3", "D4" });
-			case "1Q": return grid.getSpaces(new string[] { "A1", "A2", "B1", "B2" });
-			case "2Q": return grid.getSpaces(new string[] { "C1", "C2", "D1", "D2" });
-			case "3Q": return grid.getSpaces(new string[] { "A3", "A4", "B3", "B4" });
-			case "4Q": return grid.getSpaces(new string[] { "C3", "C4", "D3", "D4" });
+			case "1Q": return grid.getSpaces(new string[] { "A1", "B1", "A2", "B2" });
+			case "2Q": return grid.getSpaces(new string[] { "C1", "D1", "C2", "D2" });
+			case "3Q": return grid.getSpaces(new string[] { "A3", "B3", "A4", "B4" });
+			case "4Q": return grid.getSpaces(new string[] { "C3", "D3", "C4", "D4" });
 			case "TH": return grid.getSpaces(new string[] { "A1", "A2", "B1", "B2", "C1", "C2", "D1", "D2" });
 			case "BH": return grid.getSpaces(new string[] { "A3", "A4", "B3", "B4", "C3", "C4", "D3", "D4" });
 			case "LS": return grid.getSpaces(new string[] { "A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4" });
 			case "RS": return grid.getSpaces(new string[] { "C1", "C2", "C3", "C4", "D1", "D2", "D3", "D4" });
 			default: return new string[] { grid.getSpace(locID) };
+		}
+	}
+	private string[][] getLocations(string locID, GridObj grid)
+	{
+		switch (locID)
+		{
+			case "RW": return new string[][] { getSpaces("R1", grid), getSpaces("R2", grid), getSpaces("R3", grid), getSpaces("R4", grid) };
+			case "CM": return new string[][] { getSpaces("CA", grid), getSpaces("CB", grid), getSpaces("CC", grid), getSpaces("CD", grid) };
+			default: return new string[][] { getSpaces("1Q", grid), getSpaces("2Q", grid), getSpaces("3Q", grid), getSpaces("4Q", grid) };
+
 		}
 	}
 	private int getNumOcc(string str, string[] spaces)
@@ -284,5 +238,49 @@ public class ConditionRemover {
 	private char codeToValue(string space, string attrID)
 	{
 		return attrID.Equals("LV") ? space[0] : space[1];
+	}
+
+	private int getOrderSum(string[][] locations, string orderID)
+	{
+		int sum = 0;
+		foreach(string[] location in locations)
+		{
+			bool flag = true;
+			for(int i = 0; i < orderID.Length; i++)
+			{
+				if(!(location[i].Contains(orderID[i] + "")))
+				{
+					flag = false;
+					break;
+				}
+			}
+			if (flag)
+				sum++;
+		}
+		return sum;
+	}
+	private bool checkConditional(string[][] locations, char c1, int s1, string condID1, char c2, int s2, string condID2)
+	{
+		foreach (string[] location in locations)
+		{
+			if (testCondition(location, c1, s1, condID1) && !testCondition(location, c2, s2, condID2))
+				return false;
+		}
+		return true;
+	}
+	private bool testCondition(string[] location, char c, int sum, string condID)
+	{
+		int total = 0;
+		foreach(string space in location)
+		{
+			if (space.Contains(c + ""))
+				total++;
+		}
+		switch (condID)
+		{
+			case "EX": return (total == sum);
+			case "LT": return (total >= sum);
+			default: return (total <= sum);
+		}
 	}
 }
